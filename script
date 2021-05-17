@@ -1,0 +1,68 @@
+#!/bin/bash/
+ 
+################################################################
+##
+##   MySQL Database Backup Script 
+##   Written By: Alain Singaye
+##
+################################################################
+ 
+export PATH=/bin:/usr/bin:/usr/local/bin
+TODAY=`date +"%d%b%Y"`
+ 
+################################################################
+################## Update below values  ########################
+ 
+DB_BACKUP_PATH='/home/alain/ftp/files/wordpressbackup'
+MYSQL_HOST='172.16.215.161'
+MYSQL_PORT='3306'
+MYSQL_USER='root'
+MYSQL_PASSWORD='linux'
+DATABASE_NAME='wordpress'
+BACKUP_FILES='backupfiles.tar.gz'
+BACKUP_RETAIN_DAYS=2   ## Number of days to keep local backup copy 
+#################################################################
+ 
+mkdir -p ${DB_BACKUP_PATH}/${TODAY}
+echo "Backup started for database - ${WORDPRESS}"
+ 
+ 
+mysqldump -h ${MYSQL_HOST} \
+   -P ${MYSQL_PORT} \
+   -u ${MYSQL_USER} \
+   -p${MYSQL_PASSWORD} \
+   ${DATABASE_NAME} | gzip > ${DB_BACKUP_PATH}/${TODAY}/${DATABASE_NAME}-${TODAY}.sql.gz
+ 
+if [ $? -eq 0 ]; then
+  echo "Database backup successfully completed" 
+else
+  echo "Error found during backup"
+  exit 1
+fi
+
+ 
+##### Remove backups older than {BACKUP_RETAIN_DAYS} days  #####
+ 
+DBDELDATE=`date +"%d%b%Y" --date="${BACKUP_RETAIN_DAYS} days ago"`
+ 
+
+if [ ! -z ${DB_BACKUP_PATH} ]; then
+      cd ${DB_BACKUP_PATH}
+      if [ ! -z ${DBDELDATE} ] && [ -d ${DBDELDATE} ]; then
+            rm -rf ${DBDELDATE}
+      fi
+fi
+
+
+ 
+##### Backup  wordpress files ####
+
+
+ssh root@172.16.215.161 tar -zcvf backupfiles.tar.gz /var/www/html 
+
+
+scp -r root@172.16.215.161:${BACKUP_FILES} /${DB_BACKUP_PATH}/${TODAY} ; exit ;
+
+exit;
+
+### End of script ####
